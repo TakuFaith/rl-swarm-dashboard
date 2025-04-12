@@ -36,7 +36,7 @@ def get_swarm_performance():
 def get_onchain():
     return get_onchain_activity()
 
-# 👇 Enables running directly
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
