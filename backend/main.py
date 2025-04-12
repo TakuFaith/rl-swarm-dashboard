@@ -1,64 +1,93 @@
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import os
-import time
+import uvicorn
+import json
+import asyncio
+from datetime import datetime
+from onchain_parser import parse_onchain_data  # Your existing parser
+from data_loader import load_swarm_data  # Your existing loader
 
 app = FastAPI()
 
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
-INDEX_HTML = os.path.join(FRONTEND_DIR, "index.html")
-
-
-
-
+# CORS Setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve index.html
-@app.get("/")
-async def serve_index():
-    return FileResponse(INDEX_HTML)
+# WebSocket Manager
+class ConnectionManager:
+    def _init_(self):
+        self.active_connections = []
+    
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+    
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+    
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            await connection.send_json(message)
 
-# Dummy Swarm Stats endpoint
+manager = ConnectionManager()
+
+# Real-time Simulation Engine
+async def simulate_swarm_updates():
+    while True:
+        try:
+            # 1. Load fresh data
+            onchain_data = parse_onchain_data()  # Use your existing parser
+            swarm_data = load_swarm_data()  # Use your existing loader
+            
+            # 2. Merge with simulated changes
+            updated_data = {
+                "timestamp": datetime.now().isoformat(),
+                "total_nodes": swarm_data["total_nodes"],
+                "average_reward": swarm_data["average_reward"] * (0.99 + 0.02 * random.random()),
+                "nodes": [
+                    {
+                        **node,
+                        "reward": node["reward"] * (0.98 + 0.04 * random.random()),
+                        "last_active": datetime.now().isoformat()
+                    } 
+                    for node in swarm_data["nodes"]
+                ]
+            }
+            
+            # 3. Broadcast to all connected dashboards
+            await manager.broadcast(updated_data)
+            await asyncio.sleep(2)  # Update every 2 seconds
+            
+        except Exception as e:
+            print(f"Simulation error: {e}")
+            await asyncio.sleep(5)
+
+# WebSocket Endpoint
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # Keep connection alive
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+# HTTP Fallback Endpoint
 @app.get("/api/swarm")
 async def get_swarm_data():
     return {
-        "total_nodes": 42,
-        "average_reward": 18.5,
-        "total_staked": 35000,
-        "active_nodes": 30
+        **load_swarm_data(),
+        "timestamp": datetime.now().isoformat()
     }
 
-# Dummy nodes list
-@app.get("/api/nodes")
-async def get_nodes():
-    return [
-        {
-            "node_id": f"node-{i}",
-            "average_reward": round(i * 0.5 + 10, 2),
-            "staked_tokens": i * 100,
-            "last_active": "2025-04-12T12:00:00"
-        } for i in range(1, 21)
-    ]
+# Start simulation when app starts
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(simulate_swarm_updates())
 
-# Dummy stream
-@app.get("/api/stream")
-async def stream_events():
-    def event_generator():
-        for i in range(5):
-            yield f"data: New update {i}\n\n"
-            time.sleep(2)
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-@app.get("/")
-def read_root():
-    return {"message": "RL Swarm Dashboard backend is live 🚀"}
+if _name_ == "_main_":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
