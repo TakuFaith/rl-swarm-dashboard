@@ -1,32 +1,17 @@
-[
-    {
-      "node_id": "Node-Alpha",
-      "training_task": "CartPole-v1",
-      "reward_score": 195.3,
-      "latency_ms": 12.7,
-      "uptime_hours": 54,
-      "gpu_type": "NVIDIA A100",
-      "location": "London, UK",
-      "status": "active"
-    },
-    {
-      "node_id": "Node-Beta",
-      "training_task": "Walker2D-v3",
-      "reward_score": 118.4,
-      "latency_ms": 29.3,
-      "uptime_hours": 21,
-      "gpu_type": "RTX 3090",
-      "location": "Berlin, Germany",
-      "status": "inactive"
-    },
-    {
-      "node_id": "Node-Gamma",
-      "training_task": "HalfCheetah-v2",
-      "reward_score": 264.8,
-      "latency_ms": 15.1,
-      "uptime_hours": 67,
-      "gpu_type": "TPU v4",
-      "location": "San Francisco, USA",
-      "status": "active"
-    }
+{
+  "total_nodes": 12,
+  "nodes": [
+    { "reward": 12.5, "staked": 1500 },
+    { "reward": 10.2, "staked": 1200 },
+    { "reward": 8.7,  "staked": 900 },
+    { "reward": 11.1, "staked": 1300 },
+    { "reward": 9.8,  "staked": 1100 },
+    { "reward": 13.0, "staked": 1600 },
+    { "reward": 7.5,  "staked": 800 },
+    { "reward": 10.9, "staked": 1250 },
+    { "reward": 8.3,  "staked": 950 },
+    { "reward": 12.2, "staked": 1450 },
+    { "reward": 9.1,  "staked": 1050 },
+    { "reward": 11.5, "staked": 1350 }
   ]
+}
