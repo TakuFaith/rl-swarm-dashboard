@@ -7,17 +7,14 @@ import time
 
 app = FastAPI()
 
-# Path setup
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
 INDEX_HTML = os.path.join(FRONTEND_DIR, "index.html")
-#ASSETS_DIR = os.path.join(FRONTEND_DIR, "assets")
 
-# Mount static assets if folder exists
-#if os.path.isdir(ASSETS_DIR):
-    #app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
-# Enable CORS
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -61,3 +58,7 @@ async def stream_events():
             yield f"data: New update {i}\n\n"
             time.sleep(2)
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@app.get("/")
+def read_root():
+    return {"message": "RL Swarm Dashboard backend is live 🚀"}
