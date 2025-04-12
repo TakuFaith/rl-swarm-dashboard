@@ -1,16 +1,13 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import json
 import asyncio
-import random  # Added missing import
 from datetime import datetime
-from onchain_parser import parse_onchain_data  # Your existing parser
-from data_loader import load_swarm_data  # Your existing loader
-
+from data_loader import load_swarm_data
+from onchain_parser import parse_onchain_data
+import random
 app = FastAPI()
 
-# CORS Setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,77 +15,78 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# WebSocket Manager
 class ConnectionManager:
-    def _init_(self):
+    def __init__(self):
         self.active_connections = []
-    
+        self.simulation_active = False
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-    
+
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
-    
+
     async def broadcast(self, message: dict):
         for connection in self.active_connections:
-            await connection.send_json(message)
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                print(f"Broadcast error: {e}")
 
 manager = ConnectionManager()
 
-# Real-time Simulation Engine
 async def simulate_swarm_updates():
     while True:
         try:
-            # 1. Load fresh data
-            onchain_data = parse_onchain_data()  # Use your existing parser
-            swarm_data = load_swarm_data()  # Use your existing loader
-            
-            # 2. Merge with simulated changes
-            updated_data = {
-                "timestamp": datetime.now().isoformat(),
-                "total_nodes": swarm_data["total_nodes"],
-                "average_reward": swarm_data["average_reward"] * (0.99 + 0.02 * random.random()),
-                "nodes": [
-                    {
-                        **node,
-                        "reward": node["reward"] * (0.98 + 0.04 * random.random()),
-                        "last_active": datetime.now().isoformat()
-                    } 
-                    for node in swarm_data["nodes"]
-                ]
-            }
-            
-            # 3. Broadcast to all connected dashboards
-            await manager.broadcast(updated_data)
-            await asyncio.sleep(2)  # Update every 2 seconds
-            
+            if manager.simulation_active:
+                swarm_data = load_swarm_data()
+                onchain_data = parse_onchain_data()
+
+                updated_data = {
+                    "timestamp": datetime.now().isoformat(),
+                    "total_nodes": swarm_data["total_nodes"],
+                    "total_staked": swarm_data["total_staked"],
+                    "average_reward": swarm_data["average_reward"] * (0.98 + 0.04 * random.random()),
+                    "average_health": swarm_data["average_health"],
+                    "onchain": onchain_data,
+                    "nodes": [
+                        {
+                            **node,
+                            "reward": node["reward"] * (0.95 + 0.1 * random.random()),
+                            "health_score": max(0.0, min(1.0, node["health_score"] * (0.95 + 0.1 * random.random()))),
+                            "last_active": datetime.now().isoformat()
+                        }
+                        for node in swarm_data["nodes"]
+                    ]
+                }
+                await manager.broadcast(updated_data)
+            await asyncio.sleep(2)
         except Exception as e:
             print(f"Simulation error: {e}")
             await asyncio.sleep(5)
 
-# WebSocket Endpoint
 @app.websocket("/api/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            await websocket.receive_text()  # Keep connection alive
-    except WebSocketDisconnect:
+            await websocket.receive_text()
+    except:
         manager.disconnect(websocket)
 
-# HTTP Fallback Endpoint
 @app.get("/api/swarm")
 async def get_swarm_data():
-    return {
-        **load_swarm_data(),
-        "timestamp": datetime.now().isoformat()
-    }
+    return load_swarm_data()
 
-# Start simulation when app starts
+@app.post("/api/simulate")
+async def start_simulation():
+    manager.simulation_active = True
+    return {"message": "Simulation started"}
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(simulate_swarm_updates())
 
-if __name__ == "_main_":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

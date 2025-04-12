@@ -2,7 +2,7 @@ import json
 import random
 from datetime import datetime
 
-def parse_onchain_data(file_path="realdata.json"):
+def parse_onchain_data(file_path: str = "realdata.json") -> dict:
     try:
         with open(file_path) as f:
             data = json.load(f)
@@ -10,10 +10,13 @@ def parse_onchain_data(file_path="realdata.json"):
         data = {"nodes": []}
 
     nodes = data.get("nodes", [])
-    avg_health = (sum(node.get("health_score", 0.9) for node in nodes) / len(nodes) * 100) if nodes else 90.0
+    total_staked = sum(node.get("staked", 0) for node in nodes)
+    health_scores = [node.get("health_score", 0.9) for node in nodes if node]
     
+    avg_health = (sum(health_scores) / len(health_scores)) * 100 if health_scores else 90.0
+
     return {
-        "total_staked": data.get("total_staked", 0) * (0.99 + 0.02 * random.random()),
-        "health_score": max(0, min(100, avg_health + random.uniform(-1.5, 1.5))),
+        "total_staked": total_staked * (0.99 + 0.02 * random.random()),
+        "health_score": max(0, min(100, avg_health + random.uniform(-2, 2))),
         "last_updated": datetime.now().isoformat()
     }
