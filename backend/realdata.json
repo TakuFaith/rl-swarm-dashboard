@@ -1,0 +1,32 @@
+[
+    {
+      "node_id": "Node-Alpha",
+      "training_task": "CartPole-v1",
+      "reward_score": 195.3,
+      "latency_ms": 12.7,
+      "uptime_hours": 54,
+      "gpu_type": "NVIDIA A100",
+      "location": "London, UK",
+      "status": "active"
+    },
+    {
+      "node_id": "Node-Beta",
+      "training_task": "Walker2D-v3",
+      "reward_score": 118.4,
+      "latency_ms": 29.3,
+      "uptime_hours": 21,
+      "gpu_type": "RTX 3090",
+      "location": "Berlin, Germany",
+      "status": "inactive"
+    },
+    {
+      "node_id": "Node-Gamma",
+      "training_task": "HalfCheetah-v2",
+      "reward_score": 264.8,
+      "latency_ms": 15.1,
+      "uptime_hours": 67,
+      "gpu_type": "TPU v4",
+      "location": "San Francisco, USA",
+      "status": "active"
+    }
+  ]
