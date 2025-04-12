@@ -20,7 +20,7 @@ app.add_middleware(
 
 # WebSocket Manager
 class ConnectionManager:
-    def _init_(self):
+    def __init__(self):
         self.active_connections = []
     
     async def connect(self, websocket: WebSocket):
@@ -90,5 +90,5 @@ async def get_swarm_data():
 async def startup_event():
     asyncio.create_task(simulate_swarm_updates())
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
