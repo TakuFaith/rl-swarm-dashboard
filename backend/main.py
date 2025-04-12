@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import json
 import asyncio
+import random  # Added missing import
 from datetime import datetime
 from onchain_parser import parse_onchain_data  # Your existing parser
 from data_loader import load_swarm_data  # Your existing loader
@@ -89,5 +90,5 @@ async def get_swarm_data():
 async def startup_event():
     asyncio.create_task(simulate_swarm_updates())
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     uvicorn.run(app, host="0.0.0.0", port=8000)
