@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .data_loader import load_node_data
+
 from .onchain_parser import get_onchain_activity
 
 app = FastAPI()
