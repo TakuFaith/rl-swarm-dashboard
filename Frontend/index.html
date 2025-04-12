@@ -1,475 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>RL Swarm Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Tailwind CSS with Dark Mode -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: {
-              dark: '#06b6d4',
-              light: '#3b82f6'
-            },
-            secondary: {
-              dark: '#10b981',
-              light: '#10b981'
+    <meta charset="UTF-8">
+    <title>RL Swarm Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .header-font { font-family: 'Orbitron', sans-serif; }
+        .theme-transition * { transition: background-color 0.3s ease, color 0.3s ease; }
+        .chart-toggle.active { background-color: #3b82f6 !important; color: white !important; }
+    </style>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { dark: '#06b6d4', light: '#3b82f6' },
+                        secondary: { dark: '#10b981', light: '#10b981' }
+                    }
+                }
             }
-          }
         }
-      }
-    }
-  </script>
-  <!-- Plotly.js -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-    .header-font {
-      font-family: 'Orbitron', sans-serif;
-    }
-    .theme-transition * {
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .tooltip {
-      position: absolute;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .chart-toggle.active {
-      background-color: #3b82f6;
-      color: white;
-    }
-  </style>
+    </script>
 </head>
+
 <body class="theme-transition bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 min-h-screen">
-
-  <header class="mb-10 text-center relative">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="header-font text-4xl sm:text-5xl font-extrabold text-primary-dark dark:text-primary-light drop-shadow">RL Swarm Dashboard</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-3 text-sm">Visualizing Decentralized Collective Learning</p>
-      </div>
-      <div class="flex items-center space-x-4">
-        <button id="simulation-btn" class="px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition">
-          Simulation Mode
-        </button>
-        <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path id="theme-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </button>
-      </div>
+    <!-- Simulation Controls -->
+    <div id="simulation-panel" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="header-font text-xl">Simulation Controls</h3>
+                <button id="close-simulation" class="text-gray-500 hover:text-gray-700">
+                    ✕
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm mb-2">Node Count: <span id="node-count-value">15</span></label>
+                    <input type="range" id="node-count" min="5" max="50" value="15" class="w-full">
+                </div>
+                <button id="run-simulation" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Start Simulation
+                </button>
+            </div>
+        </div>
     </div>
-  </header>
 
-  <main class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-    <!-- Swarm Overview -->
-    <section class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-      <h2 class="header-font text-xl text-primary-dark dark:text-primary-light font-semibold mb-4">Swarm Overview</h2>
-      <div class="grid grid-cols-2 gap-4">
-        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-          <p class="text-gray-500 dark:text-gray-400 text-sm">Total Nodes</p>
-          <p id="total-nodes" class="text-2xl font-bold">--</p>
+    <!-- Main Header -->
+    <header class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="header-font text-3xl sm:text-4xl text-blue-600 dark:text-blue-400">
+                    RL Swarm Dashboard
+                </h1>
+                <p class="text-gray-600 dark:text-gray-300 mt-1 text-sm">
+                    Real-time Node Network Visualization
+                </p>
+            </div>
+            <div class="flex gap-2">
+                <button id="simulation-btn" class="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 rounded-lg text-sm">
+                    Simulate
+                </button>
+                <button id="theme-toggle" class="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300">
+                    🌓
+                </button>
+            </div>
         </div>
-        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-          <p class="text-gray-500 dark:text-gray-400 text-sm">Avg Reward</p>
-          <p id="avg-reward" class="text-2xl font-bold">--</p>
+    </header>
+
+    <!-- Dashboard Grid -->
+    <main class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Metrics Cards -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl">
+                <p class="text-gray-500 dark:text-gray-300 text-sm">Total Nodes</p>
+                <p id="total-nodes" class="text-2xl font-bold">-</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl">
+                <p class="text-gray-500 dark:text-gray-300 text-sm">Avg Reward</p>
+                <p id="avg-reward" class="text-2xl font-bold">-</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl">
+                <p class="text-gray-500 dark:text-gray-300 text-sm">Total Staked</p>
+                <p id="total-staked" class="text-2xl font-bold">-</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl">
+                <p class="text-gray-500 dark:text-gray-300 text-sm">Network Health</p>
+                <p id="swarm-health" class="text-2xl font-bold">-</p>
+            </div>
         </div>
-        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-          <p class="text-gray-500 dark:text-gray-400 text-sm">Total Staked</p>
-          <p id="total-staked" class="text-2xl font-bold">--</p>
+
+        <!-- Distribution Chart -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold">Reward Distribution</h2>
+                <div class="flex gap-2">
+                    <button class="chart-toggle active px-2 py-1 text-xs bg-blue-500 text-white rounded" data-type="bar">
+                        Bars
+                    </button>
+                    <button class="chart-toggle px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded" data-type="pie">
+                        Pie
+                    </button>
+                </div>
+            </div>
+            <div id="node-distribution" class="h-64"></div>
         </div>
-        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-          <p class="text-gray-500 dark:text-gray-400 text-sm">Swarm Health</p>
-          <p id="swarm-health" class="text-2xl font-bold">--</p>
+
+        <!-- Main Performance Chart -->
+        <div class="md:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold">Node Performance</h2>
+                <button id="export-btn" class="px-3 py-1 text-sm bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-300 rounded-lg">
+                    Export Data
+                </button>
+            </div>
+            <div id="node-performance" class="h-96"></div>
         </div>
-      </div>
-    </section>
+    </main>
 
-    <!-- Node Distribution -->
-    <section class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="header-font text-xl text-primary-dark dark:text-primary-light font-semibold">Node Distribution</h2>
-        <div class="flex space-x-2">
-          <button class="chart-toggle active px-3 py-1 text-xs bg-blue-500 text-white rounded-md" data-type="bar">Bars</button>
-          <button class="chart-toggle px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md" data-type="pie">Pie</button>
-        </div>
-      </div>
-      <div id="node-distribution" class="h-64"></div>
-    </section>
+    <script>
+        // Configuration
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        let chartInstances = { performance: null, distribution: null };
+        let socketConnection = null;
 
-    <!-- Reward Performance -->
-    <section class="md:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="header-font text-xl text-primary-dark dark:text-primary-light font-semibold">Node Reward Performance</h2>
-        <button id="export-btn" class="px-3 py-1 text-sm bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-800 transition">
-          Export Data
-        </button>
-      </div>
-      <div id="node-performance" class="h-96"></div>
-      <div id="node-tooltip" class="tooltip bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 text-sm"></div>
-    </section>
-  </main>
-
-  <!-- Simulation Panel (Hidden by default) -->
-  <div id="simulation-panel" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="header-font text-xl font-semibold">Swarm Simulation Parameters</h3>
-        <button id="close-simulation" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Number of Nodes</label>
-          <input type="range" id="node-count" min="5" max="50" value="15" class="w-full">
-          <div class="flex justify-between text-xs text-gray-500">
-            <span>5</span>
-            <span id="node-count-value">15</span>
-            <span>50</span>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Exploration Rate</label>
-          <input type="range" id="exploration-rate" min="0" max="100" value="30" class="w-full">
-          <div class="flex justify-between text-xs text-gray-500">
-            <span>0%</span>
-            <span id="exploration-rate-value">30%</span>
-            <span>100%</span>
-          </div>
-        </div>
-        <button id="run-simulation" class="w-full py-2 bg-primary-dark dark:bg-primary-light text-white rounded-md hover:opacity-90 transition">
-          Run Simulation
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // =====================
-    // Theme Management (Preserved exactly as you had it)
-    // =====================
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-    const themePath = document.getElementById('theme-path');
-    
-    // Check for saved preference or system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let currentTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
-    
-    // Apply initial theme
-    document.documentElement.classList.toggle('dark', currentTheme === 'dark');
-    updateThemeIcon();
-    
-    // Theme toggle handler
-    themeToggle.addEventListener('click', () => {
-      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.classList.toggle('dark', currentTheme === 'dark');
-      localStorage.setItem('theme', currentTheme);
-      updateThemeIcon();
-      updateChartThemes();
-    });
-    
-    function updateThemeIcon() {
-      if (currentTheme === 'dark') {
-        themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
-      } else {
-        themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
-      }
-    }
-
-    // =====================
-    // Real-Time Data Connection (Updated for FastAPI)
-    // =====================
-    let nodePerformanceChart, nodeDistributionChart;
-    let allNodesData = [];
-    let socket;
-    let retryCount = 0;
-    const maxRetries = 5;
-
-    // WebSocket Connection Manager
-    function connectWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-      const host = window.location.hostname || 'localhost';
-      socket = new WebSocket(`${protocol}${host}:8000/api/ws`);
-
-      socket.onopen = () => {
-        console.log('WebSocket connected');
-        retryCount = 0;
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        allNodesData = data.nodes || [];
-        updateDashboard(data);
-      };
-
-      socket.onclose = () => {
-        console.log('WebSocket disconnected');
-        if (retryCount < maxRetries) {
-          const delay = Math.min(3000, 500 * Math.pow(2, retryCount));
-          setTimeout(connectWebSocket, delay);
-          retryCount++;
-        } else {
-          startHttpPolling();
+        // Theme Management
+        function updateTheme() {
+            document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+            localStorage.setItem('theme', currentTheme);
+            refreshCharts();
         }
-      };
 
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-    }
-
-    // HTTP Fallback
-    function startHttpPolling() {
-      fetchData();
-      setInterval(fetchData, 3000);
-    }
-
-    // Initial Data Fetch
-    async function fetchData() {
-      try {
-        const response = await fetch('http://localhost:8000/api/swarm');
-        const data = await response.json();
-        allNodesData = data.nodes || [];
-        updateDashboard(data);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        if (retryCount < maxRetries) {
-          setTimeout(fetchData, 1000);
-          retryCount++;
-        }
-      }
-    }
-
-    // Initialize connection
-    document.addEventListener('DOMContentLoaded', () => {
-      connectWebSocket();
-    });
-
-    // =====================
-    // Dashboard Updates (Modified for FastAPI data structure)
-    // =====================
-    function updateDashboard(swarmData) {
-      // Update overview metrics
-      document.getElementById('total-nodes').textContent = swarmData.total_nodes || '--';
-      document.getElementById('avg-reward').textContent = swarmData.average_reward ? swarmData.average_reward.toFixed(2) : '--';
-      document.getElementById('total-staked').textContent = swarmData.total_staked ? swarmData.total_staked.toLocaleString() : '--';
-      document.getElementById('swarm-health').textContent = swarmData.health_score || '--';
-      
-      // Update charts
-      updateNodePerformanceChart(allNodesData);
-      updateNodeDistributionChart(allNodesData);
-    }
-
-    function calculateHealthScore(swarmData) {
-      if (!swarmData.health_score) {
-        const rewardScore = Math.min((swarmData.average_reward || 0) * 10, 50);
-        const participationScore = ((swarmData.active_nodes || 0) / (swarmData.total_nodes || 1)) * 50;
-        return Math.round(rewardScore + participationScore);
-      }
-      return swarmData.health_score;
-    }
-
-    // =====================
-    // Chart Functions (Preserved with theme support)
-    // =====================
-    function updateNodePerformanceChart(nodesData = []) {
-      const isDark = currentTheme === 'dark';
-      const chartData = [{
-        x: nodesData.map(n => n.id || n.node_id),
-        y: nodesData.map(n => n.reward || n.average_reward),
-        type: 'bar',
-        marker: { color: isDark ? '#06b6d4' : '#3b82f6' }
-      }];
-      
-      const layout = {
-        title: 'Node Rewards',
-        font: { color: isDark ? '#f3f4f6' : '#111827' },
-        plot_bgcolor: 'transparent',
-        paper_bgcolor: 'transparent',
-        xaxis: { title: 'Node ID' },
-        yaxis: { title: 'Reward' },
-        margin: { t: 40, l: 60, r: 40, b: 100 }
-      };
-      
-      if (!nodePerformanceChart) {
-        nodePerformanceChart = Plotly.newPlot('node-performance', chartData, layout);
-      } else {
-        Plotly.react('node-performance', chartData, layout);
-      }
-      
-      // Tooltip handling
-      document.getElementById('node-performance').on('plotly_click', (data) => {
-        const point = data.points[0];
-        const node = allNodesData.find(n => (n.id || n.node_id) === point.x);
-        if (node) {
-          const tooltip = document.getElementById('node-tooltip');
-          tooltip.innerHTML = `
-            <h4 class="font-bold mb-1">${node.id || node.node_id}</h4>
-            <p><span class="font-medium">Reward:</span> ${(node.reward || node.average_reward).toFixed(2)}</p>
-            <p><span class="font-medium">Staked:</span> ${(node.staked || node.staked_tokens).toLocaleString()}</p>
-            <p><span class="font-medium">Last Active:</span> ${new Date(node.last_active).toLocaleString()}</p>
-          `;
-          tooltip.style.left = `${data.event.clientX + 15}px`;
-          tooltip.style.top = `${data.event.clientY + 15}px`;
-          tooltip.style.opacity = '1';
-          setTimeout(() => tooltip.style.opacity = '0', 3000);
-        }
-      });
-    }
-
-    function updateNodeDistributionChart(nodesData = [], chartType = 'bar') {
-      const isDark = currentTheme === 'dark';
-      const ranges = [
-        { min: 0, max: 10, label: '0-10' },
-        { min: 10, max: 20, label: '10-20' },
-        { min: 20, max: 30, label: '20-30' },
-        { min: 30, max: Infinity, label: '30+' }
-      ];
-      
-      const distribution = ranges.map(range => ({
-        range: range.label,
-        count: nodesData.filter(n => 
-          (n.reward || n.average_reward) >= range.min && 
-          (n.reward || n.average_reward) < range.max
-        ).length
-      }));
-      
-      let chartData;
-      if (chartType === 'pie') {
-        chartData = [{
-          values: distribution.map(d => d.count),
-          labels: distribution.map(d => d.range),
-          type: 'pie',
-          marker: { 
-            colors: isDark ? 
-              ['#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1'] :
-              ['#3b82f6', '#2563eb', '#1d4ed8', '#1e40af']
-          }
-        }];
-      } else {
-        chartData = [{
-          x: distribution.map(d => d.range),
-          y: distribution.map(d => d.count),
-          type: 'bar',
-          marker: { color: '#10b981' }
-        }];
-      }
-      
-      const layout = {
-        title: chartType === 'pie' ? 'Reward Distribution' : 'Nodes by Reward Range',
-        font: { color: isDark ? '#f3f4f6' : '#111827' },
-        plot_bgcolor: 'transparent',
-        paper_bgcolor: 'transparent'
-      };
-      
-      if (!nodeDistributionChart) {
-        nodeDistributionChart = Plotly.newPlot('node-distribution', chartData, layout);
-      } else {
-        Plotly.react('node-distribution', chartData, layout);
-      }
-    }
-
-    function updateChartThemes() {
-      if (nodePerformanceChart) updateNodePerformanceChart(allNodesData);
-      if (nodeDistributionChart) {
-        const currentType = document.querySelector('.chart-toggle.active')?.dataset.type || 'bar';
-        updateNodeDistributionChart(allNodesData, currentType);
-      }
-    }
-
-    // =====================
-    // UI Interactions (Preserved exactly)
-    // =====================
-    document.querySelectorAll('.chart-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.chart-toggle').forEach(b => b.classList.remove('active', 'bg-blue-500', 'text-white'));
-        btn.classList.add('active', 'bg-blue-500', 'text-white');
-        updateNodeDistributionChart(allNodesData, btn.dataset.type);
-      });
-    });
-    
-    const simulationBtn = document.getElementById('simulation-btn');
-    const simulationPanel = document.getElementById('simulation-panel');
-    const closeSimulation = document.getElementById('close-simulation');
-    
-    simulationBtn.addEventListener('click', () => {
-      simulationPanel.classList.remove('hidden');
-    });
-    
-    closeSimulation.addEventListener('click', () => {
-      simulationPanel.classList.add('hidden');
-    });
-    
-    document.getElementById('node-count').addEventListener('input', (e) => {
-      document.getElementById('node-count-value').textContent = e.target.value;
-    });
-    
-    document.getElementById('exploration-rate').addEventListener('input', (e) => {
-      document.getElementById('exploration-rate-value').textContent = `${e.target.value}%`;
-    });
-    
-    document.getElementById('run-simulation').addEventListener('click', async () => {
-      const nodeCount = document.getElementById('node-count').value;
-      const explorationRate = document.getElementById('exploration-rate').value;
-      
-      try {
-        const response = await fetch('http://localhost:8000/api/simulate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            node_count: nodeCount,
-            exploration_rate: explorationRate
-          })
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            updateTheme();
         });
-        
-        const result = await response.json();
-        alert(`Simulation complete! New health score: ${result.health_score}`);
-        simulationPanel.classList.add('hidden');
-      } catch (error) {
-        console.error('Simulation error:', error);
-        alert('Simulation failed. Please try again.');
-      }
-    });
-    
-    document.getElementById('export-btn').addEventListener('click', () => {
-      const csvContent = "data:text/csv;charset=utf-8," +
-        "Node ID,Reward,Staked,Last Active\n" +
-        allNodesData.map(node => 
-          `${node.id || node.node_id},${node.reward || node.average_reward},${node.staked || node.staked_tokens},${node.last_active}`
-        ).join("\n");
-      
-      const link = document.createElement("a");
-      link.setAttribute("href", encodeURI(csvContent));
-      link.setAttribute("download", "swarm_data.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
 
-    // Window resize handling
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (nodePerformanceChart) Plotly.Plots.resize('node-performance');
-        if (nodeDistributionChart) Plotly.Plots.resize('node-distribution');
-      }, 200);
-    });
-  </script>
+        // Data Connection
+        async function connectWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const wsHost = window.location.host || 'localhost:8000';
+            
+            try {
+                socketConnection = new WebSocket(`${wsProtocol}${wsHost}/api/ws`);
+                
+                socketConnection.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    updateDisplay(data);
+                };
+
+                socketConnection.onclose = () => setTimeout(connectWebSocket, 3000);
+
+            } catch (error) {
+                console.error('WebSocket Error:', error);
+            }
+        }
+
+        // Data Handling
+        function updateDisplay(data) {
+            // Update metrics
+            document.getElementById('total-nodes').textContent = data.total_nodes || '-';
+            document.getElementById('avg-reward').textContent = data.average_reward?.toFixed(2) || '-';
+            document.getElementById('total-staked').textContent = data.total_staked?.toLocaleString() || '-';
+            document.getElementById('swarm-health').textContent = 
+                `${(data.average_health || 0).toFixed(1)}%` || '-';
+
+            // Update charts
+            renderPerformanceChart(data.nodes || []);
+            renderDistributionChart(data.nodes || []);
+        }
+
+        // Chart Rendering
+        function renderPerformanceChart(nodes) {
+            const isDark = currentTheme === 'dark';
+            const layout = {
+                title: 'Node Rewards',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: isDark ? '#fff' : '#000' },
+                xaxis: { title: 'Node ID', tickangle: -45 },
+                yaxis: { title: 'Reward Value' },
+                margin: { t: 40, l: 60, r: 30, b: 100 }
+            };
+
+            const trace = {
+                x: nodes.map(n => n.id),
+                y: nodes.map(n => n.reward),
+                type: 'bar',
+                marker: { color: isDark ? '#06b6d4' : '#3b82f6' }
+            };
+
+            if (chartInstances.performance) {
+                Plotly.react('node-performance', [trace], layout);
+            } else {
+                chartInstances.performance = Plotly.newPlot('node-performance', [trace], layout);
+            }
+        }
+
+        function renderDistributionChart(nodes, type = 'bar') {
+            const isDark = currentTheme === 'dark';
+            const ranges = [
+                { min: 0, max: 5, label: '0-5' },
+                { min: 5, max: 10, label: '5-10' },
+                { min: 10, max: 15, label: '10-15' },
+                { min: 15, max: Infinity, label: '15+' }
+            ];
+
+            const distribution = ranges.map(range => ({
+                label: range.label,
+                count: nodes.filter(n => n.reward >= range.min && n.reward < range.max).length
+            }));
+
+            const layout = {
+                title: type === 'pie' ? 'Reward Distribution' : 'Nodes by Reward',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: isDark ? '#fff' : '#000' }
+            };
+
+            const trace = type === 'pie' ? {
+                values: distribution.map(d => d.count),
+                labels: distribution.map(d => d.label),
+                type: 'pie',
+                marker: { colors: ['#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'] }
+            } : {
+                x: distribution.map(d => d.label),
+                y: distribution.map(d => d.count),
+                type: 'bar',
+                marker: { color: '#10b981' }
+            };
+
+            if (chartInstances.distribution) {
+                Plotly.react('node-distribution', [trace], layout);
+            } else {
+                chartInstances.distribution = Plotly.newPlot('node-distribution', [trace], layout);
+            }
+        }
+
+        // UI Interactions
+        document.querySelectorAll('.chart-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.chart-toggle').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                renderDistributionChart(allNodes, button.dataset.type);
+            });
+        });
+
+        document.getElementById('simulation-btn').addEventListener('click', () => {
+            document.getElementById('simulation-panel').classList.remove('hidden');
+        });
+
+        document.getElementById('close-simulation').addEventListener('click', () => {
+            document.getElementById('simulation-panel').classList.add('hidden');
+        });
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTheme();
+            connectWebSocket();
+        });
+    </script>
 </body>
 </html>
