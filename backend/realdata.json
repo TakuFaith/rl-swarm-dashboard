@@ -1,17 +1,102 @@
 {
   "total_nodes": 12,
+  "total_staked": 14300,
   "nodes": [
-    { "reward": 12.5, "staked": 1500 },
-    { "reward": 10.2, "staked": 1200 },
-    { "reward": 8.7,  "staked": 900 },
-    { "reward": 11.1, "staked": 1300 },
-    { "reward": 9.8,  "staked": 1100 },
-    { "reward": 13.0, "staked": 1600 },
-    { "reward": 7.5,  "staked": 800 },
-    { "reward": 10.9, "staked": 1250 },
-    { "reward": 8.3,  "staked": 950 },
-    { "reward": 12.2, "staked": 1450 },
-    { "reward": 9.1,  "staked": 1050 },
-    { "reward": 11.5, "staked": 1350 }
+    {
+      "id": "node-1",
+      "reward": 12.5,
+      "staked": 1500,
+      "health_score": 0.92,
+      "last_active": "2023-11-16T09:15:23Z",
+      "status": "active"
+    },
+    {
+      "id": "node-2",
+      "reward": 10.2,
+      "staked": 1200,
+      "health_score": 0.85,
+      "last_active": "2023-11-16T09:14:57Z",
+      "status": "syncing"
+    },
+    {
+      "id": "node-3",
+      "reward": 8.7,
+      "staked": 900,
+      "health_score": 0.78,
+      "last_active": "2023-11-16T09:10:42Z",
+      "status": "active"
+    },
+    {
+      "id": "node-4",
+      "reward": 11.1,
+      "staked": 1300,
+      "health_score": 0.95,
+      "last_active": "2023-11-16T09:16:01Z",
+      "status": "active"
+    },
+    {
+      "id": "node-5",
+      "reward": 9.8,
+      "staked": 1100,
+      "health_score": 0.88,
+      "last_active": "2023-11-16T09:13:22Z",
+      "status": "idle"
+    },
+    {
+      "id": "node-6",
+      "reward": 13.0,
+      "staked": 1600,
+      "health_score": 0.97,
+      "last_active": "2023-11-16T09:16:45Z",
+      "status": "active"
+    },
+    {
+      "id": "node-7",
+      "reward": 7.5,
+      "staked": 800,
+      "health_score": 0.72,
+      "last_active": "2023-11-16T09:05:33Z",
+      "status": "syncing"
+    },
+    {
+      "id": "node-8",
+      "reward": 10.9,
+      "staked": 1250,
+      "health_score": 0.91,
+      "last_active": "2023-11-16T09:15:44Z",
+      "status": "active"
+    },
+    {
+      "id": "node-9",
+      "reward": 8.3,
+      "staked": 950,
+      "health_score": 0.81,
+      "last_active": "2023-11-16T09:11:19Z",
+      "status": "idle"
+    },
+    {
+      "id": "node-10",
+      "reward": 12.2,
+      "staked": 1450,
+      "health_score": 0.93,
+      "last_active": "2023-11-16T09:16:30Z",
+      "status": "active"
+    },
+    {
+      "id": "node-11",
+      "reward": 9.1,
+      "staked": 1050,
+      "health_score": 0.84,
+      "last_active": "2023-11-16T09:12:08Z",
+      "status": "active"
+    },
+    {
+      "id": "node-12",
+      "reward": 11.5,
+      "staked": 1350,
+      "health_score": 0.96,
+      "last_active": "2023-11-16T09:16:15Z",
+      "status": "active"
+    }
   ]
 }
