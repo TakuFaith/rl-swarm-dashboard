@@ -3,14 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import json
 import asyncio
-import random  # Added missing import
+import random
 from datetime import datetime
-from onchain_parser import parse_onchain_data  # Your existing parser
-from data_loader import load_swarm_data  # Your existing loader
+from data_loader import load_swarm_data
+
+# Dummy parser if onchain_parser not available
+def parse_onchain_data():
+    return {"onchain_metric": random.random()}
 
 app = FastAPI()
 
-# CORS Setup
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,35 +21,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# WebSocket Manager
+# WebSocket Connection Manager
 class ConnectionManager:
-    def _init_(self):
-        self.active_connections = []
-    
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-    
+
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-    
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
     async def broadcast(self, message: dict):
         for connection in self.active_connections:
-            await connection.send_json(message)
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                print(f"Broadcast error: {e}")
 
 manager = ConnectionManager()
 
-# Real-time Simulation Engine
+# Real-time Swarm Simulation Loop
 async def simulate_swarm_updates():
     while True:
         try:
-            # 1. Load fresh data
-            onchain_data = parse_onchain_data()  # Use your existing parser
-            swarm_data = load_swarm_data()  # Use your existing loader
-            
-            # 2. Merge with simulated changes
+            # 1. Load and process data
+            onchain_data = parse_onchain_data()
+            swarm_data = load_swarm_data()
+
+            # 2. Simulate small updates
             updated_data = {
                 "timestamp": datetime.now().isoformat(),
+                "onchain": onchain_data,
                 "total_nodes": swarm_data["total_nodes"],
                 "average_reward": swarm_data["average_reward"] * (0.99 + 0.02 * random.random()),
                 "nodes": [
@@ -54,30 +62,30 @@ async def simulate_swarm_updates():
                         **node,
                         "reward": node["reward"] * (0.98 + 0.04 * random.random()),
                         "last_active": datetime.now().isoformat()
-                    } 
+                    }
                     for node in swarm_data["nodes"]
                 ]
             }
-            
-            # 3. Broadcast to all connected dashboards
+
+            # 3. Broadcast
             await manager.broadcast(updated_data)
-            await asyncio.sleep(2)  # Update every 2 seconds
-            
+            await asyncio.sleep(2)
+
         except Exception as e:
             print(f"Simulation error: {e}")
             await asyncio.sleep(5)
 
-# WebSocket Endpoint
+# WebSocket Route
 @app.websocket("/api/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            await websocket.receive_text()  # Keep connection alive
+            await websocket.receive_text()  # Keeps connection alive
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-# HTTP Fallback Endpoint
+# HTTP GET Fallback Endpoint
 @app.get("/api/swarm")
 async def get_swarm_data():
     return {
@@ -85,10 +93,11 @@ async def get_swarm_data():
         "timestamp": datetime.now().isoformat()
     }
 
-# Start simulation when app starts
+# Launch simulation on app startup
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(simulate_swarm_updates())
 
-if __name__ == "_main_":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Run app using uvicorn
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
