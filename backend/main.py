@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import asyncio
 import random
+import json
 from datetime import datetime
-from data_loader import load_swarm_data
-from onchain_parser import parse_onchain_data
+from typing import Dict, List
 
 app = FastAPI()
 
@@ -18,7 +18,9 @@ app.add_middleware(
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        self.active_connections: List[WebSocket] = []
+        self.simulation_active = False
+        self.node_count = 12  # Default from realdata.json
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -28,7 +30,7 @@ class ConnectionManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
 
-    async def broadcast(self, message: dict):
+    async def broadcast(self, message: Dict):
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
@@ -37,34 +39,50 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+def load_swarm_data() -> Dict:
+    with open("realdata.json") as f:
+        data = json.load(f)
+    
+    processed_nodes = []
+    for node in data["nodes"]:
+        processed_nodes.append({
+            "id": node["id"],
+            "reward": node["reward"],
+            "staked": node["staked"],
+            "health_score": node["health_score"],
+            "last_active": datetime.now().isoformat(),
+            "status": node["status"]
+        })
+    
+    return {
+        "total_nodes": len(processed_nodes),
+        "total_staked": sum(n["staked"] for n in processed_nodes),
+        "average_reward": sum(n["reward"] for n in processed_nodes) / len(processed_nodes),
+        "average_health": (sum(n["health_score"] for n in processed_nodes) / len(processed_nodes)) * 100,
+        "nodes": processed_nodes
+    }
+
 async def simulate_swarm_updates():
     while True:
-        try:
-            onchain_data = parse_onchain_data()
+        if manager.simulation_active:
             swarm_data = load_swarm_data()
-
             updated_data = {
                 "timestamp": datetime.now().isoformat(),
-                "onchain": onchain_data,
-                "total_nodes": swarm_data["total_nodes"],
-                "total_staked": swarm_data["total_staked"],
-                "average_reward": swarm_data["average_reward"] * (0.99 + 0.02 * random.random()),
-                "average_health": swarm_data["average_health"],
+                "total_nodes": manager.node_count,
+                "total_staked": swarm_data["total_staked"] * (0.95 + 0.1 * random.random()),
+                "average_reward": swarm_data["average_reward"] * (0.98 + 0.04 * random.random()),
+                "average_health": swarm_data["average_health"] * (0.97 + 0.06 * random.random()),
                 "nodes": [
                     {
                         **node,
-                        "reward": node["reward"] * (0.98 + 0.04 * random.random()),
-                        "last_active": datetime.now().isoformat()
+                        "reward": node["reward"] * (0.95 + 0.1 * random.random()),
+                        "health_score": max(0, min(1, node["health_score"] * (0.95 + 0.1 * random.random())))
                     }
-                    for node in swarm_data["nodes"]
+                    for node in swarm_data["nodes"][:manager.node_count]
                 ]
             }
-
             await manager.broadcast(updated_data)
-            await asyncio.sleep(2)
-        except Exception as e:
-            print(f"Simulation error: {e}")
-            await asyncio.sleep(5)
+        await asyncio.sleep(2)
 
 @app.websocket("/api/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -77,11 +95,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/api/swarm")
 async def get_swarm_data():
-    swarm_data = load_swarm_data()
-    return {
-        **swarm_data,
-        "timestamp": datetime.now().isoformat()
-    }
+    return load_swarm_data()
+
+@app.post("/api/simulate")
+async def start_simulation(node_count: int):
+    manager.simulation_active = True
+    manager.node_count = node_count
+    return {"message": "Simulation started"}
 
 @app.on_event("startup")
 async def startup_event():
