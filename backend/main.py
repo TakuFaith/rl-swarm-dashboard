@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .data_loader import load_node_data
-
-from .onchain_parser import get_onchain_activity
+from backend.data_loader import load_node_data
+from backend.onchain_parser import get_onchain_activity
 
 app = FastAPI()
 
@@ -36,3 +35,8 @@ def get_swarm_performance():
 @app.get("/api/onchain")
 def get_onchain():
     return get_onchain_activity()
+
+# 👇 Enables running directly
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
