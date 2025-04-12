@@ -4,98 +4,467 @@
   <meta charset="UTF-8" />
   <title>RL Swarm Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS with Dark Mode -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              dark: '#06b6d4',
+              light: '#3b82f6'
+            },
+            secondary: {
+              dark: '#10b981',
+              light: '#10b981'
+            }
+          }
+        }
+      }
+    }
+  </script>
   <!-- Plotly.js -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
     body {
+      font-family: 'Inter', sans-serif;
+    }
+    .header-font {
       font-family: 'Orbitron', sans-serif;
+    }
+    .theme-transition * {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-black to-gray-900 text-white p-6 min-h-screen">
+<body class="theme-transition bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 min-h-screen">
 
-  <header class="mb-10 text-center">
-    <h1 class="text-4xl sm:text-5xl font-extrabold text-cyan-400 drop-shadow">RL Swarm Dashboard</h1>
-    <p class="text-gray-400 mt-3 text-sm">Tracking decentralized learning and token economics</p>
+  <header class="mb-10 text-center relative">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="header-font text-4xl sm:text-5xl font-extrabold text-primary-dark dark:text-primary-light drop-shadow">RL Swarm Dashboard</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-3 text-sm">Visualizing Decentralized Collective Learning</p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button id="simulation-btn" class="px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition">
+          Simulation Mode
+        </button>
+        <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path id="theme-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </button>
+      </div>
+    </div>
   </header>
 
-  <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-    <!-- Swarm Stats -->
-    <section class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 shadow-2xl">
-      <h2 class="text-xl text-purple-300 font-semibold mb-4">Swarm Metrics</h2>
-      <div id="swarm-performance" class="text-lg space-y-2 animate-fade-in"></div>
+  <main class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+    <!-- Swarm Overview -->
+    <section class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <h2 class="header-font text-xl text-primary-dark dark:text-primary-light font-semibold mb-4">Swarm Overview</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <p class="text-gray-500 dark:text-gray-400 text-sm">Total Nodes</p>
+          <p id="total-nodes" class="text-2xl font-bold">--</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <p class="text-gray-500 dark:text-gray-400 text-sm">Avg Reward</p>
+          <p id="avg-reward" class="text-2xl font-bold">--</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <p class="text-gray-500 dark:text-gray-400 text-sm">Total Staked</p>
+          <p id="total-staked" class="text-2xl font-bold">--</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <p class="text-gray-500 dark:text-gray-400 text-sm">Swarm Health</p>
+          <p id="swarm-health" class="text-2xl font-bold">--</p>
+        </div>
+      </div>
     </section>
 
-    <!-- On-chain Activity -->
-    <section class="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 shadow-2xl">
-      <h2 class="text-xl text-emerald-300 font-semibold mb-4">On-chain Staking</h2>
-      <div id="onchain-activity" class="h-64"></div>
+    <!-- Node Distribution -->
+    <section class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="header-font text-xl text-primary-dark dark:text-primary-light font-semibold">Node Distribution</h2>
+        <div class="flex space-x-2">
+          <button class="chart-toggle px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md" data-type="bar">Bars</button>
+          <button class="chart-toggle px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md" data-type="pie">Pie</button>
+        </div>
+      </div>
+      <div id="node-distribution" class="h-64"></div>
     </section>
 
-    <!-- Node Rewards -->
-    <section class="col-span-1 md:col-span-2 bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10 shadow-2xl">
-      <h2 class="text-xl text-cyan-300 font-semibold mb-4">Node Reward Distribution</h2>
+    <!-- Reward Performance -->
+    <section class="md:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="header-font text-xl text-primary-dark dark:text-primary-light font-semibold">Node Reward Performance</h2>
+        <button id="export-btn" class="px-3 py-1 text-sm bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-800 transition">
+          Export Data
+        </button>
+      </div>
       <div id="node-performance" class="h-96"></div>
+      <div id="node-tooltip" class="tooltip bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 text-sm"></div>
     </section>
-
   </main>
+
+  <!-- Simulation Panel (Hidden by default) -->
+  <div id="simulation-panel" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="header-font text-xl font-semibold">Swarm Simulation Parameters</h3>
+        <button id="close-simulation" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Number of Nodes</label>
+          <input type="range" id="node-count" min="5" max="50" value="15" class="w-full">
+          <div class="flex justify-between text-xs text-gray-500">
+            <span>5</span>
+            <span id="node-count-value">15</span>
+            <span>50</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Exploration Rate</label>
+          <input type="range" id="exploration-rate" min="0" max="100" value="30" class="w-full">
+          <div class="flex justify-between text-xs text-gray-500">
+            <span>0%</span>
+            <span id="exploration-rate-value">30%</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <button id="run-simulation" class="w-full py-2 bg-primary-dark dark:bg-primary-light text-white rounded-md hover:opacity-90 transition">
+          Run Simulation
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Fetch and display Swarm Performance
-    fetch('http://localhost:8000/api/swarm/performance')
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('swarm-performance').innerHTML = `
-          <p>🧠 <strong>Avg Reward:</strong> ${data.average_reward.toFixed(2)}</p>
-          <p>🌍 <strong>Total Nodes:</strong> ${data.total_nodes}</p>
-        `;
+    // =====================
+    // Theme Management
+    // =====================
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themePath = document.getElementById('theme-path');
+    
+    // Check for saved preference or system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let currentTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
+    
+    // Apply initial theme
+    document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+    updateThemeIcon();
+    
+    // Theme toggle handler
+    themeToggle.addEventListener('click', () => {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+      localStorage.setItem('theme', currentTheme);
+      updateThemeIcon();
+      updateChartThemes();
+    });
+    
+    function updateThemeIcon() {
+      if (currentTheme === 'dark') {
+        themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
+      } else {
+        themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
+      }
+    }
+
+    // =====================
+    // Data Fetching & Charts
+    // =====================
+    let nodePerformanceChart, nodeDistributionChart;
+    let allNodesData = [];
+    
+    // Fetch initial data
+    fetchData();
+    
+    // Set up real-time updates
+    const eventSource = new EventSource('http://localhost:8000/api/stream');
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      updateDashboard(data);
+    };
+    
+    async function fetchData() {
+      try {
+        const [swarmRes, nodesRes] = await Promise.all([
+          fetch('http://localhost:8000/api/swarm'),
+          fetch('http://localhost:8000/api/nodes')
+        ]);
+        
+        const swarmData = await swarmRes.json();
+        const nodesData = await nodesRes.json();
+        
+        allNodesData = nodesData;
+        updateDashboard(swarmData, nodesData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+    
+    function updateDashboard(swarmData, nodesData = allNodesData) {
+      // Update overview metrics
+      document.getElementById('total-nodes').textContent = swarmData.total_nodes;
+      document.getElementById('avg-reward').textContent = swarmData.average_reward.toFixed(2);
+      document.getElementById('total-staked').textContent = swarmData.total_staked.toLocaleString();
+      document.getElementById('swarm-health').textContent = calculateHealthScore(swarmData);
+      
+      // Update charts
+      updateNodePerformanceChart(nodesData);
+      updateNodeDistributionChart(nodesData);
+    }
+    
+    function calculateHealthScore(swarmData) {
+      // Simple health score calculation (0-100)
+      const rewardScore = Math.min(swarmData.average_reward * 10, 50);
+      const participationScore = (swarmData.active_nodes / swarmData.total_nodes) * 50;
+      return Math.round(rewardScore + participationScore);
+    }
+    
+    function updateNodePerformanceChart(nodesData) {
+      const nodeIds = nodesData.map(n => n.node_id);
+      const rewards = nodesData.map(n => n.average_reward);
+      
+      const chartData = [{
+        x: nodeIds,
+        y: rewards,
+        type: 'bar',
+        marker: {
+          color: currentTheme === 'dark' ? '#06b6d4' : '#3b82f6'
+        }
+      }];
+      
+      const layout = {
+        title: 'Average Rewards by Node',
+        font: {
+          color: currentTheme === 'dark' ? '#f3f4f6' : '#111827'
+        },
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent',
+        xaxis: {
+          title: 'Node ID'
+        },
+        yaxis: {
+          title: 'Average Reward'
+        },
+        margin: {
+          t: 40,  // top margin
+          l: 60,   // left margin
+          r: 40,   // right margin
+          b: 100   // bottom margin
+        }
+      };
+      
+      if (!nodePerformanceChart) {
+        nodePerformanceChart = Plotly.newPlot('node-performance', chartData, layout);
+      } else {
+        Plotly.react('node-performance', chartData, layout);
+      }
+      
+      // Add click handler for tooltips
+      document.getElementById('node-performance').on('plotly_click', (data) => {
+        const point = data.points[0];
+        const node = allNodesData.find(n => n.node_id === point.x);
+        
+        if (node) {
+          const tooltip = document.getElementById('node-tooltip');
+          tooltip.innerHTML = `
+            <h4 class="font-bold mb-1">${node.node_id}</h4>
+            <p><span class="font-medium">Reward:</span> ${node.average_reward.toFixed(2)}</p>
+            <p><span class="font-medium">Staked:</span> ${node.staked_tokens.toLocaleString()}</p>
+            <p><span class="font-medium">Last Active:</span> ${new Date(node.last_active).toLocaleString()}</p>
+          `;
+          
+          // Position tooltip near cursor
+          const hoverEvent = data.event;
+          tooltip.style.left = `${hoverEvent.clientX + 15}px`;
+          tooltip.style.top = `${hoverEvent.clientY + 15}px`;
+          tooltip.style.opacity = '1';
+          
+          // Hide tooltip after delay
+          setTimeout(() => {
+            tooltip.style.opacity = '0';
+          }, 3000);
+        }
       });
-
-    // Node Rewards Chart
-    fetch('http://localhost:8000/api/nodes')
-      .then(res => res.json())
-      .then(data => {
-        const nodeIds = data.map(n => n.node_id);
-        const rewards = data.map(n => n.average_reward);
-
-        Plotly.newPlot('node-performance', [{
-          x: nodeIds,
-          y: rewards,
+    }
+    
+    function updateNodeDistributionChart(nodesData, chartType = 'bar') {
+      // Group by reward ranges
+      const ranges = [
+        { min: 0, max: 10, label: '0-10' },
+        { min: 10, max: 20, label: '10-20' },
+        { min: 20, max: 30, label: '20-30' },
+        { min: 30, max: Infinity, label: '30+' }
+      ];
+      
+      const distribution = ranges.map(range => {
+        const count = nodesData.filter(n => 
+          n.average_reward >= range.min && n.average_reward < range.max
+        ).length;
+        return { range: range.label, count };
+      });
+      
+      let chartData;
+      if (chartType === 'pie') {
+        chartData = [{
+          values: distribution.map(d => d.count),
+          labels: distribution.map(d => d.range),
+          type: 'pie',
+          marker: {
+            colors: currentTheme === 'dark' ? 
+              ['#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1'] :
+              ['#3b82f6', '#2563eb', '#1d4ed8', '#1e40af']
+          }
+        }];
+      } else {
+        chartData = [{
+          x: distribution.map(d => d.range),
+          y: distribution.map(d => d.count),
           type: 'bar',
-          marker: { color: '#06b6d4' }
-        }], {
-          title: 'Average Reward per Node',
-          font: { color: 'white' },
-          plot_bgcolor: 'transparent',
-          paper_bgcolor: 'transparent'
-        });
-      });
+          marker: {
+            color: currentTheme === 'dark' ? '#10b981' : '#10b981'
+          }
+        }];
+      }
+      
+      const layout = {
+        title: chartType === 'pie' ? 'Reward Distribution' : 'Nodes by Reward Range',
+        font: {
+          color: currentTheme === 'dark' ? '#f3f4f6' : '#111827'
+        },
+        plot_bgcolor: 'transparent',
+        paper_bgcolor: 'transparent'
+      };
+      
+      if (!nodeDistributionChart) {
+        nodeDistributionChart = Plotly.newPlot('node-distribution', chartData, layout);
+      } else {
+        Plotly.react('node-distribution', chartData, layout);
+      }
+    }
+    
+    function updateChartThemes() {
+      if (nodePerformanceChart) {
+        updateNodePerformanceChart(allNodesData);
+      }
+      if (nodeDistributionChart) {
+        const currentType = document.querySelector('.chart-toggle.active')?.dataset.type || 'bar';
+        updateNodeDistributionChart(allNodesData, currentType);
+      }
+    }
 
-    // On-chain Staking Chart
-    fetch('http://localhost:8000/api/onchain')
-      .then(res => res.json())
-      .then(data => {
-        const nodeIds = data.map(n => n.node_id);
-        const staked = data.map(n => n.staked_tokens);
-
-        Plotly.newPlot('onchain-activity', [{
-          x: staked,
-          y: nodeIds,
-          type: 'bar',
-          orientation: 'h',
-          marker: { color: '#10b981' }
-        }], {
-          title: 'Staked Tokens by Node',
-          font: { color: 'white' },
-          plot_bgcolor: 'transparent',
-          paper_bgcolor: 'transparent'
-        });
+    // =====================
+    // UI Interactions
+    // =====================
+    // Chart type toggles
+    document.querySelectorAll('.chart-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.chart-toggle').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+        btn.classList.add('bg-blue-500', 'text-white');
+        updateNodeDistributionChart(allNodesData, btn.dataset.type);
       });
+    });
+    
+    // Simulation panel
+    const simulationBtn = document.getElementById('simulation-btn');
+    const simulationPanel = document.getElementById('simulation-panel');
+    const closeSimulation = document.getElementById('close-simulation');
+    
+    simulationBtn.addEventListener('click', () => {
+      simulationPanel.classList.remove('hidden');
+    });
+    
+    closeSimulation.addEventListener('click', () => {
+      simulationPanel.classList.add('hidden');
+    });
+    
+    // Simulation sliders
+    document.getElementById('node-count').addEventListener('input', (e) => {
+      document.getElementById('node-count-value').textContent = e.target.value;
+    });
+    
+    document.getElementById('exploration-rate').addEventListener('input', (e) => {
+      document.getElementById('exploration-rate-value').textContent = `${e.target.value}%`;
+    });
+    
+    // Run simulation
+    document.getElementById('run-simulation').addEventListener('click', async () => {
+      const nodeCount = document.getElementById('node-count').value;
+      const explorationRate = document.getElementById('exploration-rate').value;
+      
+      try {
+        const response = await fetch('http://localhost:8000/api/simulate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            node_count: nodeCount,
+            exploration_rate: explorationRate
+          })
+        });
+        
+        const result = await response.json();
+        alert(`Simulation complete! New health score: ${result.health_score}`);
+        simulationPanel.classList.add('hidden');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Simulation error:', error);
+        alert('Simulation failed. Please try again.');
+      }
+    });
+    
+    // Export data
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const csvContent = "data:text/csv;charset=utf-8," +
+        "Node ID,Average Reward,Staked Tokens,Last Active\n" +
+        allNodesData.map(node => 
+          `${node.node_id},${node.average_reward},${node.staked_tokens},${node.last_active}`
+        ).join("\n");
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "swarm_data.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // =====================
+    // Window Resize Handling
+    // =====================
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (nodePerformanceChart) {
+          Plotly.Plots.resize('node-performance');
+        }
+        if (nodeDistributionChart) {
+          Plotly.Plots.resize('node-distribution');
+        }
+      }, 200);
+    });
   </script>
-
 </body>
 </html>
