@@ -159,118 +159,37 @@
   </div>
 
   <script>
-    // =====================
-    // Theme Management (Preserved exactly as you had it)
-    // =====================
     const themeToggle = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
     const themePath = document.getElementById('theme-path');
-    
-    // Check for saved preference or system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let currentTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
-    
-    // Apply initial theme
-    document.documentElement.classList.toggle('dark', currentTheme === 'dark');
-    updateThemeIcon();
-    
-    // Theme toggle handler
+
     themeToggle.addEventListener('click', () => {
-      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.classList.toggle('dark', currentTheme === 'dark');
-      localStorage.setItem('theme', currentTheme);
-      updateThemeIcon();
-      updateChartThemes();
-    });
-    
-    function updateThemeIcon() {
-      if (currentTheme === 'dark') {
-        themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
-      } else {
-        themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
-      }
-    }
-
-    // =====================
-    // Real-Time Data Connection (Updated for FastAPI)
-    // =====================
-    let nodePerformanceChart, nodeDistributionChart;
-    let allNodesData = [];
-    let socket;
-    let retryCount = 0;
-    const maxRetries = 5;
-
-    // WebSocket Connection Manager
-    function connectWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-      const host = window.location.hostname || 'localhost';
-      socket = new WebSocket(`${protocol}${host}:8000/api/ws`);
-
-      socket.onopen = () => {
-        console.log('WebSocket connected');
-        retryCount = 0;
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        allNodesData = data.nodes || [];
-        updateDashboard(data);
-      };
-
-      socket.onclose = () => {
-        console.log('WebSocket disconnected');
-        if (retryCount < maxRetries) {
-          const delay = Math.min(3000, 500 * Math.pow(2, retryCount));
-          setTimeout(connectWebSocket, delay);
-          retryCount++;
-        } else {
-          startHttpPolling();
-        }
-      };
-
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-    }
-
-    // HTTP Fallback
-    function startHttpPolling() {
-      fetchData();
-      setInterval(fetchData, 3000);
-    }
-
-    // Initial Data Fetch
-    async function fetchData() {
-      try {
-        const response = await fetch('http://localhost:8000/api/swarm');
-        const data = await response.json();
-        allNodesData = data.nodes || [];
-        updateDashboard(data);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        if (retryCount < maxRetries) {
-          setTimeout(fetchData, 1000);
-          retryCount++;
-        }
-      }
-    }
-
-    // Initialize connection
-    document.addEventListener('DOMContentLoaded', () => {
-      connectWebSocket();
+      document.body.classList.toggle('dark');
+      const isDarkMode = document.body.classList.contains('dark');
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      themeIcon.setAttribute('class', isDarkMode ? 'h-6 w-6 text-gray-300' : 'h-6 w-6 text-gray-700');
+      themePath.setAttribute('d', isDarkMode ? 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' : 'M12 2a10 10 0 0110 10c0 4.418-2.84 8.165-6.812 9.488-.89-.414-1.751-.912-2.615-1.46C17.09 18.207 18 15.717 18 13a6 6 0 10-12 0c0 2.717.91 5.207 2.422 7.028C6.97 18.334 5.009 19.734 4.019 20.479C1.49 18.795 0 15.697 0 13A10 10 0 0112 2z');
     });
 
-    // =====================
-    // Dashboard Updates (Modified for FastAPI data structure)
-    // =====================
+    const simulationButton = document.getElementById('simulation-btn');
+    const simulationPanel = document.getElementById('simulation-panel');
+    const closeSimulationButton = document.getElementById('close-simulation');
+
+    simulationButton.addEventListener('click', () => {
+      simulationPanel.classList.toggle('hidden');
+    });
+
+    closeSimulationButton.addEventListener('click', () => {
+      simulationPanel.classList.add('hidden');
+    });
+
     function updateDashboard(swarmData) {
-      // Update overview metrics
+      const swarmHealth = calculateHealthScore(swarmData);
+      document.getElementById('swarm-health').textContent = swarmHealth || '--';
+      document.getElementById('total-staked').textContent = swarmData.total_staked ? swarmData.total_staked.toLocaleString() : '--';
       document.getElementById('total-nodes').textContent = swarmData.total_nodes || '--';
       document.getElementById('avg-reward').textContent = swarmData.average_reward ? swarmData.average_reward.toFixed(2) : '--';
-      document.getElementById('total-staked').textContent = swarmData.total_staked ? swarmData.total_staked.toLocaleString() : '--';
-      document.getElementById('swarm-health').textContent = swarmData.health_score || '--';
-      
-      // Update charts
+
       updateNodePerformanceChart(allNodesData);
       updateNodeDistributionChart(allNodesData);
     }
@@ -284,192 +203,25 @@
       return swarmData.health_score;
     }
 
-    // =====================
-    // Chart Functions (Preserved with theme support)
-    // =====================
-    function updateNodePerformanceChart(nodesData = []) {
-      const isDark = currentTheme === 'dark';
-      const chartData = [{
-        x: nodesData.map(n => n.id || n.node_id),
-        y: nodesData.map(n => n.reward || n.average_reward),
-        type: 'bar',
-        marker: { color: isDark ? '#06b6d4' : '#3b82f6' }
-      }];
-      
-      const layout = {
-        title: 'Node Rewards',
-        font: { color: isDark ? '#f3f4f6' : '#111827' },
-        plot_bgcolor: 'transparent',
-        paper_bgcolor: 'transparent',
-        xaxis: { title: 'Node ID' },
-        yaxis: { title: 'Reward' },
-        margin: { t: 40, l: 60, r: 40, b: 100 }
-      };
-      
-      if (!nodePerformanceChart) {
-        nodePerformanceChart = Plotly.newPlot('node-performance', chartData, layout);
-      } else {
-        Plotly.react('node-performance', chartData, layout);
-      }
-      
-      // Tooltip handling
-      document.getElementById('node-performance').on('plotly_click', (data) => {
-        const point = data.points[0];
-        const node = allNodesData.find(n => (n.id || n.node_id) === point.x);
-        if (node) {
-          const tooltip = document.getElementById('node-tooltip');
-          tooltip.innerHTML = `
-            <h4 class="font-bold mb-1">${node.id || node.node_id}</h4>
-            <p><span class="font-medium">Reward:</span> ${(node.reward || node.average_reward).toFixed(2)}</p>
-            <p><span class="font-medium">Staked:</span> ${(node.staked || node.staked_tokens).toLocaleString()}</p>
-            <p><span class="font-medium">Last Active:</span> ${new Date(node.last_active).toLocaleString()}</p>
-          `;
-          tooltip.style.left = `${data.event.clientX + 15}px`;
-          tooltip.style.top = `${data.event.clientY + 15}px`;
-          tooltip.style.opacity = '1';
-          setTimeout(() => tooltip.style.opacity = '0', 3000);
-        }
-      });
-    }
+    let allNodesData = [];
 
-    function updateNodeDistributionChart(nodesData = [], chartType = 'bar') {
-      const isDark = currentTheme === 'dark';
-      const ranges = [
-        { min: 0, max: 10, label: '0-10' },
-        { min: 10, max: 20, label: '10-20' },
-        { min: 20, max: 30, label: '20-30' },
-        { min: 30, max: Infinity, label: '30+' }
-      ];
-      
-      const distribution = ranges.map(range => ({
-        range: range.label,
-        count: nodesData.filter(n => 
-          (n.reward || n.average_reward) >= range.min && 
-          (n.reward || n.average_reward) < range.max
-        ).length
-      }));
-      
-      let chartData;
-      if (chartType === 'pie') {
-        chartData = [{
-          values: distribution.map(d => d.count),
-          labels: distribution.map(d => d.range),
-          type: 'pie',
-          marker: { 
-            colors: isDark ? 
-              ['#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1'] :
-              ['#3b82f6', '#2563eb', '#1d4ed8', '#1e40af']
-          }
-        }];
-      } else {
-        chartData = [{
-          x: distribution.map(d => d.range),
-          y: distribution.map(d => d.count),
-          type: 'bar',
-          marker: { color: '#10b981' }
-        }];
-      }
-      
-      const layout = {
-        title: chartType === 'pie' ? 'Reward Distribution' : 'Nodes by Reward Range',
-        font: { color: isDark ? '#f3f4f6' : '#111827' },
-        plot_bgcolor: 'transparent',
-        paper_bgcolor: 'transparent'
-      };
-      
-      if (!nodeDistributionChart) {
-        nodeDistributionChart = Plotly.newPlot('node-distribution', chartData, layout);
-      } else {
-        Plotly.react('node-distribution', chartData, layout);
-      }
-    }
-
-    function updateChartThemes() {
-      if (nodePerformanceChart) updateNodePerformanceChart(allNodesData);
-      if (nodeDistributionChart) {
-        const currentType = document.querySelector('.chart-toggle.active')?.dataset.type || 'bar';
-        updateNodeDistributionChart(allNodesData, currentType);
-      }
-    }
-
-    // =====================
-    // UI Interactions (Preserved exactly)
-    // =====================
-    document.querySelectorAll('.chart-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.chart-toggle').forEach(b => b.classList.remove('active', 'bg-blue-500', 'text-white'));
-        btn.classList.add('active', 'bg-blue-500', 'text-white');
-        updateNodeDistributionChart(allNodesData, btn.dataset.type);
-      });
-    });
-    
-    const simulationBtn = document.getElementById('simulation-btn');
-    const simulationPanel = document.getElementById('simulation-panel');
-    const closeSimulation = document.getElementById('close-simulation');
-    
-    simulationBtn.addEventListener('click', () => {
-      simulationPanel.classList.remove('hidden');
-    });
-    
-    closeSimulation.addEventListener('click', () => {
-      simulationPanel.classList.add('hidden');
-    });
-    
-    document.getElementById('node-count').addEventListener('input', (e) => {
-      document.getElementById('node-count-value').textContent = e.target.value;
-    });
-    
-    document.getElementById('exploration-rate').addEventListener('input', (e) => {
-      document.getElementById('exploration-rate-value').textContent = `${e.target.value}%`;
-    });
-    
-    document.getElementById('run-simulation').addEventListener('click', async () => {
-      const nodeCount = document.getElementById('node-count').value;
-      const explorationRate = document.getElementById('exploration-rate').value;
-      
+    async function fetchSwarmData() {
       try {
-        const response = await fetch('http://localhost:8000/api/simulate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            node_count: nodeCount,
-            exploration_rate: explorationRate
-          })
-        });
-        
-        const result = await response.json();
-        alert(`Simulation complete! New health score: ${result.health_score}`);
-        simulationPanel.classList.add('hidden');
+        const response = await fetch('http://localhost:8000/api/swarm'); // Change this to your FastAPI endpoint
+        const data = await response.json();
+        const { swarm_info, nodes } = data;
+        allNodesData = nodes || [];
+        updateDashboard(swarm_info);
       } catch (error) {
-        console.error('Simulation error:', error);
-        alert('Simulation failed. Please try again.');
+        console.error('Failed to fetch swarm data:', error);
       }
-    });
-    
-    document.getElementById('export-btn').addEventListener('click', () => {
-      const csvContent = "data:text/csv;charset=utf-8," +
-        "Node ID,Reward,Staked,Last Active\n" +
-        allNodesData.map(node => 
-          `${node.id || node.node_id},${node.reward || node.average_reward},${node.staked || node.staked_tokens},${node.last_active}`
-        ).join("\n");
-      
-      const link = document.createElement("a");
-      link.setAttribute("href", encodeURI(csvContent));
-      link.setAttribute("download", "swarm_data.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
+    }
 
-    // Window resize handling
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (nodePerformanceChart) Plotly.Plots.resize('node-performance');
-        if (nodeDistributionChart) Plotly.Plots.resize('node-distribution');
-      }, 200);
-    });
+    window.addEventListener('DOMContentLoaded', fetchSwarmData);
+
+    // Placeholder chart functions (to avoid errors if not implemented)
+    function updateNodePerformanceChart(data) {}
+    function updateNodeDistributionChart(data) {}
   </script>
 </body>
 </html>
