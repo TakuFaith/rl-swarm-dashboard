@@ -20,16 +20,15 @@ Key Features:
 |-----------------|-------------------------------------|
 | Frontend        | HTML5, TAILWIND.CSS, JAVASCRIPT, CHART.JS |
 | Backend         | FastAPI, Python,        |
-| Data Processing | Shapley values, PCA                 |                 
+| Data Simulation | JSON                |                 
 # OTHER TOOLS
 VSCODE for editing
-JSON for data simulation
 ## 🚀 Quick Start
 
-### For Frontend Developers
+### For  Developers
 Before you start make sure you have uvicorn and websockets installed
 ```bash
-git clone https://github.com/your-username/rl-swarm-dashboard.git
+git clone https://github.com/TakuFaith/rl-swarm-dashboard.git
 cd rl-swarm-dashboard/frontend
 npm install
 npm run dev
