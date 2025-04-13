@@ -51,4 +51,4 @@ FUTURE DEVELOPMENT
 🔒 Authentication for secure monitoring
 
 ![RL Swarm Dashboard] ("https://github.com/TakuFaith/rl-swarm-dashboard/blob/main/Screenshot%202025-04-13%20013529.png")
-![Node Rewards Performance] ( "C:\Users\Phil\OneDrive\Pictures\Screenshots\Screenshot 2025-04-13 013546.png")
+![Node Rewards Performance] ( "https://github.com/TakuFaith/rl-swarm-dashboard/blob/main/Screenshot%202025-04-13%20013546.png")
