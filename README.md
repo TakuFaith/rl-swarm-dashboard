@@ -49,3 +49,6 @@ FUTURE DEVELOPMENT
 📱 Responsive mobile-friendly layout
 
 🔒 Authentication for secure monitoring
+
+![RL Swarm Dashboard] ("C:\Users\Phil\OneDrive\Pictures\Screenshots\Screenshot 2025-04-13 013529.png")
+![Node Rewards Performance] ( "C:\Users\Phil\OneDrive\Pictures\Screenshots\Screenshot 2025-04-13 013546.png")
